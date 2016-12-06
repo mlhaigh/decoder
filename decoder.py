@@ -20,16 +20,18 @@ arr = bytearray([0x0F, 0xB0, 0x0F, 0x50, 0x22, 0xDC, 0xDC, 0xDC, 0x33, 0x0F, 0x9
 name =  "TotallyL_72.mem"
 f_in = open(name, "rb")
 crypto = f_in.read(256)
+pcount = 0
 
 for p in pcap:
+    pcount = pcount + 1
     if p[IP].src == '169.254.118.2':
-        print "***PACKET FROM SERVER TO CLIENT***"
+        print "******PACKET %d FROM SERVER TO CLIENT******" % pcount
     elif p[IP].src == '169.254.118.0':
-        print "***PACKET FROM CLIENT TO SERVER***"
+        print "******PACKET %d FROM CLIENT TO SERVER******" % pcount
     if p[TCP].payload:
         data = str(p[TCP].payload)
         if data[0:4] == 'peep':
-            print data[8]
+            #print data[8]
             if data[8] == 'q':
                 print "BRANCH71"
                 print zlib.decompress(data[16:])
@@ -51,6 +53,7 @@ for p in pcap:
             else:
                 print "UNKNOWN PACKET TYPE"
                 p.show()
+    print "******END PACKET %d******\n" % pcount
 
 
 f_in.close()
