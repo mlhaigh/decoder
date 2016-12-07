@@ -7,6 +7,7 @@ from scapy.all import *
 import zlib
 import binascii
 import hashlib
+from Crypto.Cipher import DES
 
 usage = ("usage: %s <filename>") % sys.argv[0]
 
@@ -31,25 +32,38 @@ for p in pcap:
     if p[TCP].payload:
         data = str(p[TCP].payload)
         if data[0:4] == 'peep':
-            #print data[8]
+            print data[8]
             if data[8] == 'q':
+                pass
                 print "BRANCH71"
                 print zlib.decompress(data[16:])
             elif data[8] == 'r':
+                pass
                 print "BRANCH72"
 		data_out = []
 		for bytes in arr:
 		    #print(hex(bytes))
-		    data_out.append(crypto[bytes])
+		    #data_out.append(crypto[bytes])
 		data_str = ''
 		data_str = data_str.join(data_out)
 		print(data_str)
             elif data[8] == 's':
+                pass
                 print "BRANCH73"
                 hexdump(data)
             elif data[8] == 't':
                 print "BRANCH74"
                 hexdump(data)
+                hash = hashlib.md5()
+                hash.update(data[:16])
+                des = DES.new(hash.digest()[:8], DES.MODE_ECB)
+                print data[4]
+                len = ord(data[4])
+                print len
+                len = len - 28
+                print len
+                des.decrypt(data[16:len])
+                print data
             else:
                 print "UNKNOWN PACKET TYPE"
                 p.show()
