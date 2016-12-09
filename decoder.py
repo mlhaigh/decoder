@@ -16,7 +16,7 @@ def detect_direction(data):
         'exec' : 1,
         'exe' : 1,
         'rest' : 1
-    }.get(data, 2)
+    }.get(data[0:4], 2)
 
 def decode_71(data):
     return zlib.decompress(data[16:])
@@ -61,13 +61,20 @@ def decode_73(data):
     data_str = data_str.join(data_list)
     return data_str
 
-def decode_74(data):
-    pass
+#as an alternative to decryption using DES, we used the echo in the next packet
+def decode_74(data, idx, pcap):
+    packet = pcap[idx]
+    new_data = str(packet[TCP].payload)
+    temp = decode(new_data, None, None)
+    cmd = "exec"
+    return (cmd + temp[4:])
+
+#Here lies crypto that doesnt quite get the job done
    # hexdump(data)
    # hash = hashlib.md5()
    # hash.update(data[12:28])
-   # salt = "0x00/0x00"
-   # iterations = 4
+   # salt = ""
+   # iterations = 10000
    # keySize = 8
    # key = hashlib.pbkdf2_hmac('md5', data[12:28], \
    #         salt, iterations, keySize)
@@ -76,6 +83,18 @@ def decode_74(data):
    # len = ord(data[4])
    # des.decrypt(data[28:len])
    # print data
+
+def decode(data, pcount, pcap):
+    if data[8] == 'q':
+        return decode_71(data)
+    elif data[8] == 'r':
+        return decode_72(data)
+    elif data[8] == 's':
+        return decode_73(data)
+    elif data[8] == 't':
+        return decode_74(data, pcount, pcap)
+    else:
+        return none
 
 usage = ("usage: %s <filename>") % sys.argv[0]
 
@@ -91,32 +110,31 @@ f_in = open(ref_name, "rb")
 crypto = f_in.read(256)
 f_in.close()
 
+#i = 0
+#for i in range(56):
+#    print i
+#    hexdump(pcap[i])
+#exit(0)
+
 for p in pcap:
     pcount = pcount + 1
     if p[TCP].payload:
         data = str(p[TCP].payload)
-        if detect_direction(data) == 0:
-            print "******PACKET %d FROM SERVER TO CLIENT******" % pcount
-        elif detect_direction(data) == 1:
-            print "******PACKET %d FROM CLIENT TO SERVER******" % pcount
-        else:
-            print "******PACKET %d OTHER******" % pcount
         if data[0:4] == 'peep':
-            if data[8] == 'q':
-                print decode_71(data)
-            elif data[8] == 'r':
-                print decode_72(data)
-            elif data[8] == 's':
-                print decode_73(data)
-            elif data[8] == 't':
-                print "74 Packet"
-            else:
-                print "UNKNOWN PACKET TYPE"
-                p.show()
+            decoded = decode(data, pcount, pcap)
+            if (decoded):
+                if detect_direction(decoded) == 1:
+                    print "******PACKET %d FROM SERVER TO CLIENT******" % pcount
+                elif detect_direction(decoded) == 0:
+                    print "******PACKET %d FROM CLIENT TO SERVER******" % pcount
+                else:
+                    print "******PACKET %d OTHER******" % pcount
+                print decoded
+        else:
+            print "******PACKET %d NOT ENCODED" % pcount
     else:
         print "******PACKET %d NO PAYLOAD******" % pcount
     print "******END PACKET %d******\n" % pcount
-
 
 f_in.close()
 
